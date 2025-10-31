@@ -1,4 +1,4 @@
-# **Graph-Based Network Routing Simulation**
+# **Graph-Based-WAN-and-LAN-Routing-Simulator**
 
 ## **Abstract**
 
@@ -26,16 +26,16 @@ The goal is to find the most efficient path for a message between any two nodes 
 
 ### **Network Structure**
 
+![Network Graph Structure](https://github.com/user-attachments/assets/1704035d-07c7-47df-9bf3-85ad01cbddb9)
+
+*Figure: Example of the WAN graph structure with LANs (areas A-F), edge nodes, and weighted connections.*
+
 * **Areas (LANs):** The network is divided into Areas (e.g., A, B, C).  
 * **Nodes:** Each node is identified by its Area and a number (e.g., A1, C3).  
 * **Edge Nodes:** The node numbered 1 in each Area (e.g., A1, B1) is the designated "Edge Node," which handles routing to and from other Areas.  
 * **Area Types:**  
   * **Resourced (Safe):** These Areas (e.g., A, C, D, E) prioritize high-speed routing.  
   * **Under-resourced (Unsafe):** These Areas (e.g., B, F) prioritize minimizing connection costs.
-
-![Network Graph Structure](image.png)
-
-*Figure: Example of the WAN graph structure with LANs (areas A-F), edge nodes, and weighted connections.*
 
 ## **Features**
 
@@ -180,8 +180,9 @@ Try these additional examples:
 
 ## **Contributors**
 
-* **Shabnam Khaghanpour**  
-* **Erfan Farahmandnejad**
+* [Erfan-Farahmandnejad](https://github.com/Erfan-Farahmandnejad)
+* [Shabnam-Khaqanpoor](https://github.com/Shabnam-Khaqanpoor)
+  
 
 ## **License**
 
