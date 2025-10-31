@@ -1,638 +1,188 @@
-# Graph-Based WAN and LAN Routing Simulator
+# **Graph-Based Network Routing Simulation**
 
-[![Java](https://img.shields.io/badge/Java-8%2B-blue.svg)](https://www.java.com/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Algorithm Design](https://img.shields.io/badge/Course-Algorithm%20Design-orange.svg)]()
+## **Abstract**
 
-> **A sophisticated network routing simulation implementing multi-algorithm pathfinding strategies for hierarchical WAN-LAN architectures**
+This project is a Java-based simulation of a hierarchical computer network routing system. It models a **Wide Area Network (WAN)** connecting multiple **Local Area Networks (LANs)**, implementing a multi-algorithm routing strategy that adapts to network conditions. The system uses the **Floyd-Warshall algorithm** for efficient all-pairs shortest path computation between LAN edge nodes. For intra-LAN routing, it employs **Dijkstra's algorithm** in resourced areas for speed-optimized paths, and a combination of **Kruskal's MST** and **BFS** in under-resourced areas for cost-effective routing. All routing tables are pre-computed, enabling $O(1)$ query responses with a clean, object-oriented design.
 
----
+## **Table of Contents**
 
-## Table of Contents
+* [Abstract](#abstract)
+* [Project Overview](#project-overview)  
+* [Features](#features)  
+* [Core Routing Logic](#core-routing-logic)  
+* [Algorithms Implemented](#algorithms-implemented)  
+* [Implementation Details](#implementation-details)
+* [Project Structure](#project-structure)  
+* [Requirements](#requirements)
+* [How to Run](#how-to-run)  
+* [Contributors](#contributors)  
+* [License](#license)
 
-- [Abstract](#abstract)
-- [Project Overview](#project-overview)
-- [Key Features](#key-features)
-- [Network Architecture](#network-architecture)
-- [Routing Algorithms](#routing-algorithms)
-- [Three-Phase Routing Protocol](#three-phase-routing-protocol)
-- [Implementation Details](#implementation-details)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Usage Guide](#usage-guide)
-- [Example Scenarios](#example-scenarios)
-- [Technical Specifications](#technical-specifications)
-- [Contributors](#contributors)
-- [License](#license)
+## **Project Overview**
 
----
+This program simulates message routing in a large computer network, as specified by the "Algorithm Design" course project. The network consists of a **Wide Area Network (WAN)** which connects several smaller **Local Area Networks (LANs)**, referred to as "Areas."
 
-## Abstract
+The goal is to find the most efficient path for a message between any two nodes in the entire network, balancing speed and cost based on the characteristics of each Area.
 
-This project presents a comprehensive Java-based simulation of hierarchical computer network routing, designed as part of an Algorithm Design course. The system models a realistic **Wide Area Network (WAN)** interconnecting multiple **Local Area Networks (LANs)**, implementing an intelligent multi-algorithm routing strategy that dynamically adapts to varying network conditions and resource availability.
+### **Network Structure**
 
-The simulator addresses a fundamental challenge in network engineering: optimizing message routing across heterogeneous networks where different regions prioritize either **speed** (in well-resourced areas) or **cost efficiency** (in resource-constrained areas). By employing three classical graph algorithms in concert—**Floyd-Warshall** for inter-area routing, **Dijkstra's algorithm** for fast intra-area routing in resourced zones, and a combination of **Kruskal's Minimum Spanning Tree (MST)** with **Breadth-First Search (BFS)** for cost-effective routing in under-resourced zones—the system achieves optimal path computation with **O(1)** query response time through pre-computed routing tables.
+* **Areas (LANs):** The network is divided into Areas (e.g., A, B, C).  
+* **Nodes:** Each node is identified by its Area and a number (e.g., A1, C3).  
+* **Edge Nodes:** The node numbered 1 in each Area (e.g., A1, B1) is the designated "Edge Node," which handles routing to and from other Areas.  
+* **Area Types:**  
+  * **Resourced (Safe):** These Areas (e.g., A, C, D, E) prioritize high-speed routing.  
+  * **Under-resourced (Unsafe):** These Areas (e.g., B, F) prioritize minimizing connection costs.
 
-The implementation demonstrates advanced software engineering principles with a clean, object-oriented architecture that separates concerns between graph representation, area management, and algorithm-specific logic. All routing follows a strict three-phase protocol: local-to-edge, edge-to-edge (WAN), and edge-to-local, ensuring consistent and predictable behavior across the entire network topology.
+![Network Graph Structure](image.png)
 
-**Key Contributions:**
-- Hybrid routing strategy adapting to network resource profiles
-- Pre-computed routing tables enabling constant-time path lookups
-- Modular algorithm implementation with clear separation of concerns
-- Realistic simulation of hierarchical network topologies
+*Figure: Example of the WAN graph structure with LANs (areas A-F), edge nodes, and weighted connections.*
 
----
+## **Features**
 
-## Project Overview
+* **Graph Construction**: Dynamically builds the WAN graph from vertices and edges, automatically creating LAN subgraphs.  
+* **Area Classification**: Supports "safe" and "unsafe" LANs with tailored routing strategies.  
+* **Multi-Algorithm Routing**: Implements the optimal algorithm for each part of the network (Floyd-Warshall, Dijkstra, Kruskal + BFS).  
+* **Pre-computation**: All routing tables (WAN and LAN) are pre-calculated for fast, $O(1)$ query lookups.  
+* **Interactive Querying**: Allows the user to repeatedly enter source-destination pairs to retrieve the full path and total distance.  
+* **Code Structure**: A clean, object-oriented design separates graph logic, area logic, and each algorithm into its own class.
 
-This simulator was developed for the **Algorithm Design** course mini-project, focusing on practical applications of graph algorithms in network routing scenarios. The system models a large-scale computer network consisting of:
+## **Core Routing Logic**
 
-- **Wide Area Network (WAN)**: The backbone network connecting geographically distributed areas
-- **Local Area Networks (LANs)**: Individual areas (labeled A-F) representing distinct network regions  
-- **Edge Nodes**: Gateway nodes (designated as X1 for area X) that bridge inter-area communication
-- **Resource-Based Routing**: Adaptive strategies based on area characteristics
+A key requirement of the simulation is that all message routing follows a strict 3-step path:
 
-### Problem Statement
+1. **Local to Edge:** The message travels from the **Source Node** (e.g., E2) to its Area's **Edge Node** (E1).  
+2. **Edge to Edge (WAN):** The message travels from the **Source Edge Node** (E1) to the **Destination Area's Edge Node** (A1).  
+3. **Edge to Local:** The message travels from the **Destination Edge Node** (A1) to the final **Destination Node** (A3).
 
-Given a hierarchical network with multiple areas of varying resource availability:
+This 3-step process is used even if the source and destination nodes are in the same Area.
 
-1. **Resourced Areas** (Safe/Well-provisioned): Areas A, C, D, E prioritize **high-speed routing** with abundant network resources
-2. **Under-resourced Areas** (Unsafe/Limited): Areas B, F prioritize **cost minimization** due to limited infrastructure
+## **Algorithms Implemented**
 
-The challenge is to compute optimal routing paths between any two nodes in the network, respecting:
-- Mandatory routing through edge nodes for inter-area communication
-- Different optimization objectives (speed vs. cost) based on area type
-- Pre-computation requirements for real-time query responses
+To optimize this routing logic, the program pre-calculates paths using three distinct graph algorithms based on the context.
 
-### Network Representation
+> **Note:** All algorithms perform their computations during initialization. Once the routing tables are built, path queries are answered in $O(1)$ time through simple lookups.
 
-The graph is represented using:
-- **Adjacency Lists**: Efficient edge traversal stored in `HashMap<String, List<Edge>>`
-- **Hierarchical Structure**: Separate graph instances for WAN and each LAN
-- **Node Naming Convention**: Format `[Area][Number]` (e.g., A1, C3, E5)
+### **1. Inter-Area (WAN) Routing**
 
----
+* **Problem:** Find the shortest path between all pairs of *Edge Nodes* (e.g., A1 to B1, A1 to C1, etc.). This must be pre-calculated for fast lookups.  
+* **Solution:** **Floyd-Warshall Algorithm**. This algorithm is ideal for finding all-pairs shortest paths in a graph. It computes and stores the shortest distance between every pair of nodes in the main graph, allowing for $O(1)$ lookup time for the path distance between any two edge nodes during routing.  
+* **Time Complexity:** $O(V^3)$  
+* **Space Complexity:** $O(V^2)$
 
-## Key Features
+### **2. Intra-Area (Resourced/Safe LAN) Routing**
 
-### Core Capabilities
+* **Problem:** In "Resourced" Areas, find the fastest (shortest) path from the Area's *Edge Node* to every other node within that same Area.  
+* **Solution:** **Dijkstra's Algorithm**. Since all traffic must pass through the edge node, we only need to find the shortest path from that single source. Dijkstra's is a highly efficient algorithm for finding the single-source shortest paths in a weighted graph.  
+* **Time Complexity:** $O((E+V) \log V)$  
+* **Space Complexity:** $O(V+E)$
 
-- **Dynamic Graph Construction**: Builds WAN topology from vertices and edges, automatically creating LAN subgraphs
-- **Automatic Area Classification**: Intelligently categorizes areas as safe/unsafe based on identifiers
-- **Multi-Algorithm Routing**: Deploys optimal algorithms for each network segment
-- **Pre-computation Strategy**: All routing tables calculated during initialization for O(1) lookup
-- **Interactive Query System**: Supports continuous source-destination path queries
-- **Clean Architecture**: Object-oriented design with separated concerns
+### **3. Intra-Area (Under-resourced/Unsafe LAN) Routing**
 
-### Algorithm Integration
+* **Problem:** In "Under-resourced" Areas, the priority is to minimize connection costs. This requires two steps:  
+  1. Reduce the network connections to the bare minimum required for connectivity.  
+  2. Find a routing path on this new, minimal graph.  
+* **Solution (Step 1):** **Kruskal's Algorithm**. To minimize connection costs, we compute the Minimum Spanning Tree (MST) of the Area's graph. This retains all nodes while minimizing the total edge-weight (cost). Uses Union-Find (Disjoint Set Union) for efficient cycle detection.  
+* **Solution (Step 2):** **Breadth-First Search (BFS)**. After Kruskal's algorithm, the Area's graph is now a tree. BFS is a very fast algorithm ($O(V+E)$) for finding the shortest path in terms of *hops* from the edge node to all other nodes in the tree.  
+* **Time Complexity:** $O(E \log E)$ (for Kruskal) + $O(V+E)$ (for BFS)  
+* **Space Complexity:** $O(V+E)$
 
-| Network Segment | Algorithm | Purpose | Time Complexity | Space Complexity |
-|----------------|-----------|---------|-----------------|------------------|
-| **WAN (Inter-area)** | Floyd-Warshall | All-pairs shortest paths | O(V³) | O(V²) |
-| **Safe LAN** | Dijkstra | Single-source shortest paths | O((E+V) log V) | O(V+E) |
-| **Unsafe LAN** | Kruskal + BFS | MST + tree traversal | O(E log E) + O(V+E) | O(V+E) |
+## **Implementation Details**
 
----
+### **Data Structures**
 
-## Network Architecture
+* **Adjacency List**: The graph is represented using adjacency lists for efficient edge traversal, stored in a `HashMap<String, List<Edge>>`.
+* **Edge Nodes**: Automatically detected as nodes ending with "1" (e.g., A1, B1) during graph construction.
+* **Area Classification**: Areas are automatically classified as safe/resourced or unsafe/under-resourced based on their identifier (B and F are unsafe).
 
-### Topology Structure
+### **Routing Strategy**
 
-The network consists of a two-tier hierarchy:
+The system implements a hybrid routing approach:
+1. **WAN Routing**: All inter-area communication must go through edge nodes, using pre-computed Floyd-Warshall distances.
+2. **Safe Area Routing**: Direct Dijkstra shortest paths from the edge node.
+3. **Unsafe Area Routing**: MST construction via Kruskal followed by tree-based BFS traversal.
 
-**WAN Layer (Main Graph):**
-- Contains only edge nodes (A1, B1, C1, D1, E1, F1)
-- Represents long-distance connections between areas
-- Uses Floyd-Warshall for all-pairs shortest paths
+### **Graph Representation**
 
-**LAN Layer (Area Subgraphs):**
-- Each area maintains its own internal graph
-- Contains all nodes within that area
-- Uses area-specific routing algorithms
+Each Area maintains its own subgraph, while the main Graph class manages the overall WAN topology. This separation allows independent computation of intra-area routes while maintaining a unified interface for inter-area routing queries.
 
-### Node Identification
-
-- **Format**: `[Area][Number]` (e.g., A1, C3, E5)
-- **Edge Nodes**: Always numbered as 1 in each area (A1, B1, C1, etc.)
-- **Internal Nodes**: Numbered 2 and above (A2, A3, B2, etc.)
-
-### Area Classification
-
-The system automatically classifies areas based on resource availability:
-
-| Area | Type | Routing Strategy | Algorithm | Optimization Goal |
-|------|------|-----------------|-----------|-------------------|
-| A, C, D, E | **Resourced (Safe)** | Speed-first | Dijkstra | Minimum path weight |
-| B, F | **Under-resourced (Unsafe)** | Cost-first | Kruskal + BFS | Minimum spanning tree |
-
-**Safe Areas** have abundant resources and can afford multiple network connections, prioritizing fast routing.
-
-**Unsafe Areas** have limited resources and must minimize the number of active connections, using only essential links (MST).
-
-### Example Network Topology
+## **Project Structure**
 
 ```
-WAN (Edge Nodes Only):
-A1 --12-- E1 --15-- C1 --10-- D1
-|                    |
-33                  12
-|                    |
-B1 -------44-------- F1 --21-- (back to A1)
-
-LAN Area A (Safe):          LAN Area B (Unsafe):
-A1 --- A2 --- A3            B1 --- B2 --- B3
- (weight: 2)  (weight: 4)    |      |  \   |
-                             (2)   (3) (8) (7)
-                             |            |
-                             +---- B4 ----+
-
-LAN Area C (Safe):          LAN Area D (Safe):
-    C5                      D1 --- D2
-    |                        |   (weight: 2)
-C1--C2--C3                   +---- D3
- |  |                           (weight: 4)
- 3  1
- |
- C4
+├── Area.java        # Represents a LAN with its graph and safety status  
+├── BFS.java         # Implements BFS for distance computation in unsafe areas  
+├── Dijkstra.java    # Implements Dijkstra for shortest paths in safe areas  
+├── Floyd.java       # Implements Floyd-Warshall for border-to-border paths  
+├── Graph.java       # Core graph class with adjacency list, areas, and routing logic  
+├── Kruskal.java     # Implements Kruskal for MST in unsafe areas  
+├── Main.java        # Entry point: Builds graph, computes distances, handles queries  
+└── README.md        # This file
 ```
 
----
+## **Requirements**
 
-## Routing Algorithms
+This project requires:
+* **Java Development Kit (JDK)**: Version 8 or higher
+* **Operating System**: Any OS with Java support (Windows, macOS, Linux)
 
-The system employs three different graph algorithms, each optimized for its specific use case:
+## **How to Run**
 
-### 1. Floyd-Warshall Algorithm (Inter-Area Routing)
+### **Prerequisites**
 
-**Purpose**: Compute shortest paths between all pairs of edge nodes in the WAN.
-
-**Why Floyd-Warshall?**
-- Solves the all-pairs shortest path problem efficiently
-- Pre-computes all inter-area distances in a single execution
-- Enables O(1) lookup for any edge-to-edge query
-
-**Complexity**: O(V³) time, O(V²) space
-
-### 2. Dijkstra's Algorithm (Safe Area Routing)
-
-**Purpose**: Find fastest paths from the edge node to all internal nodes in resourced areas.
-
-**Why Dijkstra?**
-- Optimal for single-source shortest path in weighted graphs
-- Perfect for scenarios prioritizing speed over cost
-- Guarantees optimal paths with non-negative weights
-
-**Complexity**: O((E + V) log V) time, O(V + E) space
-
-### 3. Kruskal's MST + BFS (Unsafe Area Routing)
-
-**Purpose**: Minimize connection costs in resource-constrained areas.
-
-**Two-Phase Approach:**
-1. **Kruskal's Algorithm**: Constructs Minimum Spanning Tree to minimize total edge cost
-2. **BFS**: Fast tree traversal for finding paths after MST construction
-
-**Why This Combination?**
-- Reduces infrastructure costs by eliminating redundant connections
-- Uses Union-Find for efficient cycle detection
-- After MST, the graph becomes a tree making BFS optimal
-
-**Complexity**: O(E log E) + O(V + E) = O(E log E) total
-
----
-
-## Three-Phase Routing Protocol
-
-All message routing follows a strict three-step path, regardless of whether source and destination are in the same area:
-
-### Phase 1: Local to Edge
-**Source Node → Source Area Edge Node**
-
-The message travels from the starting node to its area's edge node (gateway).
-- **Same-Area**: If source is already the edge node, distance = 0
-- **Different Nodes**: Uses pre-computed LAN routing (Dijkstra or BFS)
-
-### Phase 2: Edge to Edge (WAN)
-**Source Edge Node → Destination Edge Node**
-
-The message travels through the WAN backbone between edge nodes.
-- **Same-Area**: If source and destination are in same area, distance = 0
-- **Different Areas**: Uses pre-computed Floyd-Warshall distances
-
-### Phase 3: Edge to Local
-**Destination Edge Node → Destination Node**
-
-The message travels from the destination area's edge node to the final target.
-- **Edge Node**: If destination is the edge node, distance = 0
-- **Internal Node**: Uses pre-computed LAN routing (Dijkstra or BFS)
-
-### Example Routing Path
-
-**Query**: Route from E2 to A3
-
-```
-E2 → E1 : 2   (Phase 1: Local to Edge in Area E, via Dijkstra)
-E1 → A1 : 12  (Phase 2: Edge to Edge via WAN, via Floyd-Warshall)
-A1 → A3 : 6   (Phase 3: Edge to Local in Area A, via Dijkstra)
-────────────
-Total   : 20
-```
-
-**Why This Protocol?**
-- **Consistency**: Predictable routing behavior
-- **Scalability**: Edge nodes act as aggregation points
-- **Optimization**: Each phase uses the most appropriate algorithm
-- **Separation of Concerns**: WAN and LAN routing are independent
-
----
-
-## Implementation Details
-
-### Data Structures
-
-**Graph Representation:**
-- **Adjacency List**: `HashMap<String, List<Edge>>` for efficient edge traversal
-- **Vertex Index Mapping**: `HashMap<String, Integer>` for Floyd-Warshall matrix indexing
-- **Vertex List**: `ArrayList<String>` maintaining insertion order
-
-**Area Management:**
-- Each `Area` object contains its own `Graph` instance
-- Boolean flag `isSafe` determines routing algorithm selection
-- Automatic area creation when edge nodes (ending in "1") are added
-
-**Edge Structure:**
-```java
-class Edge {
-    String source;
-    String destination;
-    int weight;
-}
-```
-
-### Automatic Classification
-
-The system automatically identifies:
-- **Edge Nodes**: Any vertex ending with "1" (e.g., A1, B1)
-- **Area Type**: Areas B and F are classified as unsafe; all others are safe
-- **Subgraph Membership**: Nodes are assigned to areas based on their first character
-
-### Pre-computation Strategy
-
-All routing tables are computed during initialization:
-
-1. **Graph Construction**: Vertices and edges are added, creating WAN and LAN structures
-2. **Floyd-Warshall**: Computes all edge-to-edge distances in WAN
-3. **Local Routing**: For each area:
-   - Safe areas: Run Dijkstra from edge node
-   - Unsafe areas: Run Kruskal to get MST, then BFS from edge node
-4. **Query Phase**: All distance lookups are O(1) from pre-computed tables
-
-### Code Architecture
-
-The implementation follows object-oriented design principles:
-- **Separation of Concerns**: Each algorithm in its own class
-- **Encapsulation**: Graph and Area classes manage their own state
-- **Single Responsibility**: Each class has one primary function
-- **Modularity**: Easy to extend with new algorithms or area types
-
----
-
-## Project Structure
-
-```
-Graph-Based-WAN-and-LAN-Routing-Simulator/
-│
-├── src/
-│   ├── Main.java           # Entry point, graph initialization, user interaction
-│   ├── Graph.java          # Core graph class with adjacency list and routing logic
-│   ├── Area.java           # Represents a LAN with its graph and safety status
-│   ├── Floyd.java          # Floyd-Warshall algorithm for WAN routing
-│   ├── Dijkstra.java       # Dijkstra's algorithm for safe area routing
-│   ├── Kruskal.java        # Kruskal's MST algorithm for unsafe areas
-│   └── BFS.java            # BFS for distance computation in MST
-│
-├── README.md               # This file
-└── GraphProject.iml        # IntelliJ IDEA project file
-```
-
-### Class Responsibilities
-
-| Class | Responsibility | Key Methods |
-|-------|---------------|-------------|
-| **Main** | Program entry, graph setup, user queries | `main()` |
-| **Graph** | Graph structure, routing coordination | `makeGraph()`, `localRotation()`, `outPut()` |
-| **Area** | LAN representation | `getGraph()`, `isSafe()`, `setSafe()` |
-| **Floyd** | WAN shortest paths | `floydWarshall()`, `getDist()` |
-| **Dijkstra** | Safe area shortest paths | `dijkstra()`, `getDistances()` |
-| **Kruskal** | MST construction | `kruskal()`, `getGraph()` |
-| **BFS** | Tree traversal in MST | `bfs()`, `getDistances()` |
-
----
-
-## Getting Started
-
-### Prerequisites
-
-**System Requirements:**
-- **Java Development Kit (JDK)**: Version 8 or higher
-- **Operating System**: Windows, macOS, or Linux
-- **Memory**: Minimum 512 MB RAM
-- **IDE** (Optional): IntelliJ IDEA, Eclipse, or any Java IDE
-
-**Verify Java Installation:**
+Ensure you have Java installed on your system. You can verify this by running:
 ```bash
 java -version
-javac -version
 ```
 
-### Installation
+### **Compilation and Execution**
 
-1. **Clone or Download the Repository**
+1. Navigate to the project directory containing the source files.
+
+2. Compile all Java files:  
    ```bash
-   git clone https://github.com/yourusername/Graph-Based-WAN-and-LAN-Routing-Simulator.git
-   cd Graph-Based-WAN-and-LAN-Routing-Simulator
+   javac *.java
    ```
 
-2. **Navigate to Source Directory**
+3. Run the Main class:  
    ```bash
-   cd src
+   java Main
    ```
 
-### Compilation
+4. The program will automatically build the graph and pre-calculate all WAN (Floyd-Warshall) and LAN (Dijkstra/Kruskal+BFS) paths.
 
-Compile all Java files in the source directory:
+5. You will be prompted to enter two vertices (a source and a destination):  
+   ```
+   Enter new vertexes...          enter * to finish
+   ```
 
-```bash
-javac *.java
-```
+6. Enter the source and destination nodes (e.g., `E2 A3`).  
+   The program will output the 3-step path, the distance for each step, and the total distance.
 
-This will generate `.class` files for all source files.
+7. To quit the program, enter `*` as the vertex.
 
----
+### **Example Output**
 
-## Usage Guide
-
-### Running the Program
-
-Execute the Main class:
-
-```bash
-java Main
-```
-
-### Program Flow
-
-1. **Initialization Phase**
-   - Graph is constructed from predefined vertices and edges
-   - Floyd-Warshall computes WAN routing tables
-   - Dijkstra/Kruskal+BFS compute LAN routing tables
-   - Initialization messages are displayed (if any)
-
-2. **Query Phase**
-   - Program prompts: `Enter new vertexes...          enter * to finish`
-   - Enter two space-separated node identifiers (e.g., `E2 A3`)
-   - Program displays the three-phase routing path with distances
-   - Process repeats until you enter `*`
-
-### Input Format
-
-**Valid Node Format:** `[Area][Number]`
-- Area: Single uppercase letter (A-F)
-- Number: Positive integer (1-5 in default configuration)
-- Examples: `A1`, `B3`, `C5`, `E2`
-
-**Query Format:** `[Source] [Destination]`
-- Example: `E2 A3`
-
-**Exit Command:** `*`
-
-### Sample Session
+For input `E2 A3`:
 
 ```
-Enter new vertexes...          enter * to finish
-
-E2 A3
-E2 -> E1 : 2
-E1 -> A1 : 12
-A1 -> A3 : 6
+E2 -> E1 : 2  
+E1 -> A1 : 12  
+A1 -> A3 : 6  
 Total distance is: 20
-
-Enter new vertexes...          enter * to finish
-
-C3 A1
-C3 -> C1 : 2
-C1 -> A1 : 33
-Total distance is: 35
-
-Enter new vertexes...          enter * to finish
-
-*
 ```
 
-### Customizing the Network
+### **Test Cases**
 
-To modify the network topology, edit `Main.java`:
+Try these additional examples:
+- `C3 A1` - Cross-area routing from C to A
+- `B2 F3` - Routing through unsafe areas (B and F)
+- `D1 D3` - Same area routing (forces path through edge node)
+- `F5 B4` - Complex multi-area routing
 
-**Add/Modify Vertices:**
-```java
-String[] vertices = {"A1", "A2", "A3", "B1", "B2", ...};
-```
+## **Contributors**
 
-**Add/Modify Edges:**
-```java
-String[][] edges = {
-    {"A1", "A2", "2"},  // Format: {source, destination, weight}
-    {"A2", "A3", "4"},
-    ...
-};
-```
+* **Shabnam Khaghanpour**  
+* **Erfan Farahmandnejad**
 
-**Change Area Classification:**
-```java
-// In Graph.java, modify the makeGraph method:
-if (area.equals("B") || area.equals("F") || area.equals("YourArea"))
-    this.areas.get(area).setSafe(false);
-```
+## **License**
 
----
-
-## Example Scenarios
-
-### Scenario 1: Cross-Area Routing (Safe to Safe)
-**Query:** `E2 A3`
-
-```
-E2 -> E1 : 2   (Dijkstra in safe Area E)
-E1 -> A1 : 12  (Floyd-Warshall on WAN)
-A1 -> A3 : 6   (Dijkstra in safe Area A)
-────────────
-Total   : 20
-```
-
-**Analysis**: Both areas prioritize speed, using Dijkstra for optimal paths.
-
-### Scenario 2: Routing Through Unsafe Areas
-**Query:** `B2 F3`
-
-```
-B2 -> B1 : 2   (BFS on MST in unsafe Area B)
-B1 -> F1 : 44  (Floyd-Warshall on WAN)
-F1 -> F3 : 2   (BFS on MST in unsafe Area F)
-────────────
-Total   : 48
-```
-
-**Analysis**: Both areas use MST to minimize connection costs, then BFS for traversal.
-
-### Scenario 3: Same-Area Routing
-**Query:** `D1 D3`
-
-```
-D1 -> D1 : 0   (Already at edge node)
-(No WAN routing - same area)
-D1 -> D3 : 4   (Dijkstra in safe Area D)
-────────────
-Total   : 4
-```
-
-**Analysis**: Even within same area, routing follows three-phase protocol.
-
-### Scenario 4: Edge-to-Edge Routing
-**Query:** `A1 C1`
-
-```
-A1 -> A1 : 0   (Already at edge node)
-A1 -> C1 : 45  (Floyd-Warshall finds path A1->E1->C1)
-C1 -> C1 : 0   (Already at destination)
-────────────
-Total   : 45
-```
-
-**Analysis**: Direct WAN routing between edge nodes.
-
-### Scenario 5: Complex Multi-Hop Path
-**Query:** `C5 B4`
-
-```
-C5 -> C1 : 6   (Dijkstra: C5->C2->C1 in Area C)
-C1 -> B1 : 22  (Floyd-Warshall: C1->D1->B1 via WAN)
-B1 -> B4 : 10  (BFS on MST: B1->B2->B4 in Area B)
-────────────
-Total   : 38
-```
-
-**Analysis**: Demonstrates full three-phase routing with different algorithms per segment.
-
----
-
-## Technical Specifications
-
-### Algorithm Complexity Summary
-
-| Algorithm | Use Case | Pre-computation | Query Time | Space |
-|-----------|----------|-----------------|------------|-------|
-| Floyd-Warshall | WAN routing | O(V³) | O(1) | O(V²) |
-| Dijkstra | Safe LAN routing | O((E+V) log V) | O(1) | O(V+E) |
-| Kruskal | Unsafe LAN MST | O(E log E) | N/A | O(V+E) |
-| BFS | Unsafe LAN routing | O(V+E) | O(1) | O(V+E) |
-
-### Performance Characteristics
-
-**Initialization Time:**
-- Small networks (6 areas, 25 nodes): < 100ms
-- Medium networks (10 areas, 50 nodes): < 500ms
-- Large networks (20 areas, 100 nodes): < 2s
-
-**Query Response Time:**
-- All queries: O(1) constant time (lookups only)
-- Typical response: < 1ms per query
-
-**Memory Usage:**
-- Base overhead: ~5 MB for JVM
-- Per node: ~200 bytes
-- Per edge: ~100 bytes
-- Routing tables: O(V²) for Floyd-Warshall, O(V) per area for local routing
-
-### Scalability
-
-The system scales efficiently for networks with:
-- **Up to 50 areas**: Floyd-Warshall remains practical (O(V³) with V=50)
-- **Up to 1000 total nodes**: Memory and pre-computation time manageable
-- **Unlimited queries**: O(1) lookup after pre-computation
-
-**Bottleneck**: Floyd-Warshall O(V³) becomes limiting for 100+ edge nodes.
-
-### Design Patterns Used
-
-- **Strategy Pattern**: Different routing algorithms selected based on area type
-- **Factory Pattern**: Graph and area objects created dynamically
-- **Facade Pattern**: `Graph.outPut()` provides simple interface to complex routing logic
-- **Encapsulation**: Each algorithm encapsulated in its own class
-
----
-
-## Contributors
-
-**Project Team:**
-- **Shabnam Khaghanpour** - Algorithm Implementation, Graph Architecture
-- **Erfan Farahmandnejad** - System Design, Testing, Documentation
-
-**Course**: Algorithm Design  
-**Institution**: [Your University Name]  
-**Academic Term**: [Term/Year]
-
----
-
-## License
-
-This project is open-source and available under the **MIT License**.
-
-```
-MIT License
-
-Copyright (c) 2024 Shabnam Khaghanpour, Erfan Farahmandnejad
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
----
-
-## Acknowledgments
-
-- **Algorithm Design Course Staff** for project specifications and guidance
-- **Graph Theory References** for algorithm implementations
-- **Java Documentation** for data structure implementations
-
----
-
-## Further Reading
-
-**Related Algorithms:**
-- [Floyd-Warshall Algorithm - Wikipedia](https://en.wikipedia.org/wiki/Floyd%E2%80%93Warshall_algorithm)
-- [Dijkstra's Algorithm - Wikipedia](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
-- [Kruskal's Algorithm - Wikipedia](https://en.wikipedia.org/wiki/Kruskal%27s_algorithm)
-- [Breadth-First Search - Wikipedia](https://en.wikipedia.org/wiki/Breadth-first_search)
-
-**Network Routing:**
-- Computer Networks - Andrew S. Tanenbaum
-- Introduction to Algorithms - Cormen, Leiserson, Rivest, and Stein
-
----
-
-**Made with ❤️ for Algorithm Design Course**
+This project is open-source and available under the MIT License.
