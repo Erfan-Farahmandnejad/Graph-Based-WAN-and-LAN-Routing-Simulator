@@ -82,7 +82,7 @@ To optimize this routing logic, the program pre-calculates paths using three dis
   1. Reduce the network connections to the bare minimum required for connectivity.  
   2. Find a routing path on this new, minimal graph.  
 * **Solution (Step 1):** **Kruskal's Algorithm**. To minimize connection costs, we compute the Minimum Spanning Tree (MST) of the Area's graph. This retains all nodes while minimizing the total edge-weight (cost). Uses Union-Find (Disjoint Set Union) for efficient cycle detection.  
-* **Solution (Step 2):** **Breadth-First Search (BFS)**. After Kruskal's algorithm, the Area's graph is now a tree. BFS is a very fast algorithm ($O(V+E)$) for finding the shortest path in terms of *hops* from the edge node to all other nodes in the tree.  
+* **Solution (Step 2):** **Breadth-First Search (BFS)**. After Kruskal's algorithm, the Area's graph is now a tree. BFS is a very fast algorithm ( $O(V+E)$ ) for finding the shortest path in terms of *hops* from the edge node to all other nodes in the tree.  
 * **Time Complexity:** $O(E \log E)$ (for Kruskal) + $O(V+E)$ (for BFS)  
 * **Space Complexity:** $O(V+E)$
 
